@@ -18,7 +18,7 @@ This project is a basic platformer game where the player controls a character an
 
 ### Prerequisites
 
-- Raylib library (version X.X.X or higher)
+- Raylib library
 - C compiler (e.g., GCC)
 - Makefile
 
