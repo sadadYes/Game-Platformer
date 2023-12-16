@@ -8,7 +8,6 @@
 #define PLAYER_JUMP_FORCE 10.0f
 
 #define PLATFORMS_COUNT 20
-#define OBJECTIVES_COUNT 5
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
@@ -34,7 +33,7 @@ typedef enum {
     GAME_OVER
 } GameState;
 
-void UpdatePlayer(Player* player, Platform* platforms, int platformCount, Objective* objectives, int objectiveCount, int* score, int* highScore, GameState* gameState) {
+void UpdatePlayer(Player* player, Platform* platforms, int platformCount, Objective* objectives, int* score, int* highScore, GameState* gameState) {
     // Apply gravity
     player->velocity.y += GRAVITY;
 
@@ -72,11 +71,17 @@ void UpdatePlayer(Player* player, Platform* platforms, int platformCount, Object
     }
 
     // Check collision with objectives
-    for (int i = 0; i < objectiveCount; i++) {
+    for (int i = 0; i < platformCount; i++) {
         if (CheckCollisionRecs(player->rect, objectives[i].rect) && objectives[i].isActive) {
             // Colliding with an objective
             objectives[i].isActive = false;
             (*score)++;
+
+            // Generate a new objective
+            int platformIndex = GetRandomValue(0, platformCount - 1);
+            objectives[i].rect.x = GetRandomValue(platforms[platformIndex].rect.x, platforms[platformIndex].rect.x + platforms[platformIndex].rect.width - objectives[i].rect.width);
+            objectives[i].rect.y = platforms[platformIndex].rect.y - objectives[i].rect.height;
+            objectives[i].isActive = true;
         }
     }
 
@@ -122,9 +127,8 @@ int main() {
     }
 
     // Initialize objectives
-    Objective objectives[OBJECTIVES_COUNT] = { 0 };
-    int objectiveCount = OBJECTIVES_COUNT; // Declare and initialize objectiveCount
-    for (int i = 0; i < objectiveCount; i++) {
+    Objective objectives[PLATFORMS_COUNT] = { 0 };
+    for (int i = 0; i < platformCount; i++) {
         objectives[i].rect.width = 20; // Fixed width
         objectives[i].rect.height = 20; // Fixed height
 
@@ -181,7 +185,7 @@ int main() {
                     player.velocity.y = -PLAYER_JUMP_FORCE;
                     player.isJumping = true;
                 }
-                UpdatePlayer(&player, platforms, platformCount, objectives, objectiveCount, &score, &highScore, &gameState);
+                UpdatePlayer(&player, platforms, platformCount, objectives, &score, &highScore, &gameState);
 
                 // Update camera to follow player
                 camera.target = (Vector2){ player.rect.x + player.rect.width / 2, player.rect.y + player.rect.height / 2 };
@@ -200,7 +204,7 @@ int main() {
                 }
 
                 // Draw objectives
-                for (int i = 0; i < objectiveCount; i++) {
+                for (int i = 0; i < platformCount; i++) {
                     if (objectives[i].isActive) {
                         DrawRectangleRec(objectives[i].rect, BLUE);
                     }
@@ -216,6 +220,17 @@ int main() {
                 DrawText(TextFormat("High Score: %d", highScore), 10, 40, 20, BLACK);
 
                 EndDrawing();
+
+                // Generate new platforms if needed
+                for (int i = 0; i < platformCount; i++) {
+                    if (platforms[i].rect.x + platforms[i].rect.width < camera.target.x - GetScreenWidth() / 2) {
+                        platforms[i].rect.x += platformCount * 200;
+                        platforms[i].rect.y = GetRandomValue(previousPlatformHeight - 100, min(previousPlatformHeight + 100, SCREEN_HEIGHT - 50 - platforms[i].rect.height));
+                        platforms[i].isActive = true;
+                        previousPlatformHeight = platforms[i].rect.y;
+                    }
+                }
+
                 break;
 
             case GAME_OVER:
@@ -227,7 +242,7 @@ int main() {
                     player.rect.y = platforms[0].rect.y - player.rect.height;
                     player.velocity = (Vector2){ 0, 0 };
                     player.isJumping = false;
-                    for (int i = 0; i < objectiveCount; i++) {
+                    for (int i = 0; i < platformCount; i++) {
                         objectives[i].isActive = true;
                     }
                 }
